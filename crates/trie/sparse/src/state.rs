@@ -294,9 +294,9 @@ impl<F: BlindedProviderFactory> SparseStateTrie<F> {
         while let Some((hash, path, maybe_account)) = queue.pop_front() {
             // Retrieve the trie node and decode it.
             let Some(trie_node_bytes) = witness.get(&hash) else { continue };
-            println!("trie_node_bytes:{:?}", trie_node_bytes);
+            info!("trie_node_bytes:{:?}", trie_node_bytes);
             let trie_node = TrieNode::decode(&mut &trie_node_bytes[..])?;
-            println!("trie_node:{:?}", trie_node);
+            info!("trie_node:{:?}", trie_node);
 
             // Push children nodes into the queue.
             match &trie_node {
