@@ -10,7 +10,7 @@ use alloy_primitives::{
 use alloy_rlp::{Decodable, Encodable};
 use reth_execution_errors::{SparseStateTrieErrorKind, SparseStateTrieResult, SparseTrieErrorKind};
 use reth_primitives_traits::Account;
-use reth_tracing::tracing::trace;
+use reth_tracing::tracing::{info, trace};
 use reth_trie_common::{
     updates::{StorageTrieUpdates, TrieUpdates},
     MultiProof, MultiProofTargets, Nibbles, RlpNode, TrieAccount, TrieNode, EMPTY_ROOT_HASH,
@@ -294,7 +294,9 @@ impl<F: BlindedProviderFactory> SparseStateTrie<F> {
         while let Some((hash, path, maybe_account)) = queue.pop_front() {
             // Retrieve the trie node and decode it.
             let Some(trie_node_bytes) = witness.get(&hash) else { continue };
+            println!("trie_node_bytes:{:?}", trie_node_bytes);
             let trie_node = TrieNode::decode(&mut &trie_node_bytes[..])?;
+            println!("trie_node:{:?}", trie_node);
 
             // Push children nodes into the queue.
             match &trie_node {
@@ -387,13 +389,13 @@ impl<F: BlindedProviderFactory> SparseStateTrie<F> {
         // Validate root node.
         let Some((path, node)) = proof.next() else { return Ok(None) };
         if !path.is_empty() {
-            return Err(SparseStateTrieErrorKind::InvalidRootNode { path, node }.into())
+            return Err(SparseStateTrieErrorKind::InvalidRootNode { path, node }.into());
         }
 
         // Decode root node and perform sanity check.
         let root_node = TrieNode::decode(&mut &node[..])?;
         if matches!(root_node, TrieNode::EmptyRoot) && proof.peek().is_some() {
-            return Err(SparseStateTrieErrorKind::InvalidRootNode { path, node }.into())
+            return Err(SparseStateTrieErrorKind::InvalidRootNode { path, node }.into());
         }
 
         Ok(Some(root_node))
@@ -494,7 +496,7 @@ impl<F: BlindedProviderFactory> SparseStateTrie<F> {
                 EMPTY_ROOT_HASH
             }
         } else {
-            return Err(SparseTrieErrorKind::Blind.into())
+            return Err(SparseTrieErrorKind::Blind.into());
         };
 
         if account.is_empty() && storage_root == EMPTY_ROOT_HASH {
