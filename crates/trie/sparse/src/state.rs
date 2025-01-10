@@ -3,7 +3,7 @@ use crate::{
     RevealedSparseTrie, SparseTrie,
 };
 use alloy_primitives::{
-    hex,
+    hex, keccak256,
     map::{B256HashMap, B256HashSet},
     Bytes, B256,
 };
@@ -294,6 +294,7 @@ impl<F: BlindedProviderFactory> SparseStateTrie<F> {
         while let Some((hash, path, maybe_account)) = queue.pop_front() {
             // Retrieve the trie node and decode it.
             info!("hash:{}", hash);
+            info!("hash hash:{}", keccak256(hash));
             let Some(trie_node_bytes) = witness.get(&hash) else { continue };
             info!("trie_node_bytes:{:?}", trie_node_bytes);
             let trie_node = TrieNode::decode(&mut &trie_node_bytes[..])?;
