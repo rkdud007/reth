@@ -326,9 +326,11 @@ where
 
     fn execute(mut self, block: Self::Input<'_>) -> Result<Self::Output, Self::Error> {
         self.strategy.apply_pre_execution_changes(block)?;
+        println!("gm: {:?}", block);
         let ExecuteOutput { receipts, gas_used } = self.strategy.execute_transactions(block)?;
         let requests = self.strategy.apply_post_execution_changes(block, &receipts)?;
         let state = self.strategy.finish();
+        println!("gm: {:?}", state);
 
         Ok(BlockExecutionOutput { state, receipts, requests, gas_used })
     }
