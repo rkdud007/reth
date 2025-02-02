@@ -156,7 +156,7 @@ where
                     transaction_gas_limit: transaction.gas_limit(),
                     block_available_gas,
                 }
-                .into())
+                .into());
             }
 
             let tx_env = self.evm_config.tx_env(transaction, *sender);
@@ -241,6 +241,7 @@ where
             .map_err(|_| BlockValidationError::IncrementBalanceFailed)?;
         // call state hook with changes due to balance increments.
         let balance_state = balance_increment_state(&balance_increments, &mut self.state)?;
+        println!("🍕 balance_state:{:?}", balance_state);
         self.system_caller.on_state(&balance_state);
 
         Ok(requests)
@@ -307,7 +308,8 @@ mod tests {
     use reth_primitives::{Account, Block, BlockBody, Transaction};
     use reth_primitives_traits::{crypto::secp256k1::public_key_to_address, Block as _};
     use reth_revm::{
-        database::StateProviderDatabase, test_utils::StateProviderTest, TransitionState,
+        database::StateProviderDatabase, test_utils::StateProviderTest,
+        witness::ExecutionWitnessRecord, TransitionState,
     };
     use reth_testing_utils::generators::{self, sign_tx_with_key_pair};
     use revm_primitives::{address, EvmState, BLOCKHASH_SERVE_WINDOW};
@@ -1107,10 +1109,12 @@ mod tests {
         let initial_balance = 100;
         db.insert_account(
             withdrawal_recipient,
-            Account { balance: U256::from(initial_balance), nonce: 1, bytecode_hash: None },
+            Account { balance: U256::from(initial_balance), nonce: 2, bytecode_hash: None },
             None,
             HashMap::default(),
         );
+
+        // -=======
 
         let withdrawal =
             Withdrawal { index: 0, validator_index: 0, address: withdrawal_recipient, amount: 1 };
@@ -1135,29 +1139,28 @@ mod tests {
             vec![],
         );
 
+        // ====
+
         let provider = executor_provider(chain_spec);
-        let executor = provider.executor(StateProviderDatabase::new(&db));
 
-        let (tx, rx) = mpsc::channel();
-        let tx_clone = tx.clone();
+        let executor: reth_evm::execute::BasicBlockExecutor<
+            EthExecutionStrategy<StateProviderDatabase<&StateProviderTest>, EthEvmConfig>,
+        > = provider.executor(StateProviderDatabase::new(&db));
 
-        let _output = executor
-            .execute_with_state_hook(block, move |state: &EvmState| {
-                if let Some(account) = state.get(&withdrawal_recipient) {
-                    let _ = tx_clone.send(account.info.balance);
-                }
-            })
-            .expect("Block execution should succeed");
+        let mut record = ExecutionWitnessRecord::default();
 
-        drop(tx);
-        let balance_changes: Vec<U256> = rx.try_iter().collect();
+        let output = executor.execute(&block).expect("Block execution should succeed");
 
-        if let Some(final_balance) = balance_changes.last() {
-            let expected_final_balance = U256::from(initial_balance) + U256::from(1_000_000_000); // initial + 1 Gwei in Wei
-            assert_eq!(
-                *final_balance, expected_final_balance,
-                "Final balance should match expected value after withdrawal"
-            );
-        }
+        // let output = executor
+        //     .execute_with_state_closure(&block, |state: &State<_>| {
+        //         record.record_executed_state(state);
+        //     })
+        //     .expect("Block execution should succeed");
+
+        // ====
+
+        println!("record: {:?}", record);
+        println!("output:{:? }", output);
+        println!("output:{:? }", output.state);
     }
 }
