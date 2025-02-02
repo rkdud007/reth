@@ -23,7 +23,7 @@ use revm::{
     db::{states::bundle_state::BundleRetention, BundleState},
     State,
 };
-use revm_primitives::{db::Database, Account, AccountStatus, EvmState};
+use revm_primitives::{address, db::Database, Account, AccountStatus, EvmState};
 
 /// A general purpose executor trait that executes an input (e.g. block) and produces an output
 /// (e.g. state changes and receipts).
@@ -327,6 +327,13 @@ where
     fn execute(mut self, block: Self::Input<'_>) -> Result<Self::Output, Self::Error> {
         self.strategy.apply_pre_execution_changes(block)?;
         println!("gm: {:?}", block);
+        let b = self
+            .strategy
+            .state_mut()
+            .basic(address!("0000000000000000000000000000000000000315"))
+            .map_err(|e| S::Error::from(e.into()))
+            .unwrap();
+        println!("gm strategy:{:?}", b);
         let ExecuteOutput { receipts, gas_used } = self.strategy.execute_transactions(block)?;
         let requests = self.strategy.apply_post_execution_changes(block, &receipts)?;
         let state = self.strategy.finish();
