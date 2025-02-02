@@ -200,6 +200,7 @@ where
         block: &RecoveredBlock<reth_primitives::Block>,
         receipts: &[Receipt],
     ) -> Result<Requests, Self::Error> {
+        println!("🍕 receipts:{:?}", receipts);
         let mut evm = self.evm_config.evm_for_block(&mut self.state, block.header());
 
         let requests = if self.chain_spec.is_prague_active_at_timestamp(block.timestamp) {
@@ -219,8 +220,10 @@ where
             Requests::default()
         };
         drop(evm);
+        println!("requests:{:?}", requests);
 
         let mut balance_increments = post_block_balance_increments(&self.chain_spec, block);
+        println!("balance_increments:{:?}", balance_increments);
 
         // Irregular state change at Ethereum DAO hardfork
         if self.chain_spec.fork(EthereumHardfork::Dao).transitions_at_block(block.number()) {
@@ -1130,11 +1133,7 @@ mod tests {
         let block = &RecoveredBlock::new_unhashed(
             Block {
                 header,
-                body: BlockBody {
-                    transactions: vec![],
-                    ommers: vec![],
-                    withdrawals: Some(vec![withdrawal].into()),
-                },
+                body: BlockBody { transactions: vec![], ommers: vec![], withdrawals: None },
             },
             vec![],
         );
